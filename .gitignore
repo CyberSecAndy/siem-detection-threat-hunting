@@ -1,0 +1,42 @@
+# SIEM Index/Cache
+.splunk_cache/
+.elasticsearch_cache/
+
+# Sensitive Data
+*.credentials
+*.token
+*.apikey
+secrets/
+.env
+.env.local
+
+# Temporary Files
+*.tmp
+*.temp
+*.bak
+*~
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+
+# Logs
+*.log
+logs/
+
+# Node
+node_modules/
+npm-debug.log

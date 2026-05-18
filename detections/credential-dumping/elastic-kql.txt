@@ -1,0 +1,31 @@
+# Elastic KQL: Detect Credential Dumping
+# Queries for detecting credential dumping attempts including Mimikatz
+
+# Query 1: Detect Mimikatz Process Execution
+process.name:(mimikatz.exe OR mimi.exe OR meow.exe)
+
+# Query 2: Detect Suspicious Command Lines
+process.command_line:(*lsadump* OR *sekurlsa* OR *vault::cred* OR *token::elevate*)
+
+# Query 3: Combine Both - More Comprehensive
+process.name:(mimikatz.exe OR mimi.exe) OR 
+  process.command_line:(*lsadump::sam* OR *lsadump::secrets* OR *sekurlsa::logonpasswords* OR *vault::cred*)
+
+# Query 4: Exclude System Processes
+process.command_line:(*lsadump* OR *sekurlsa*) AND 
+  NOT process.executable:("C:\\Windows\\*" OR "C:\\Program Files\\*")
+
+# Query 5: Detect LSASS Process Access
+event.code:10 AND process.target.name:lsass.exe AND 
+  NOT process.executable:"C:\\Windows\\*"
+
+# Query 6: SAM Registry Access
+event.code:4657 AND registry.path:"\\Registry\\Machine\\SAM*"
+
+# Query 7: TimeRange Filter - Last 24 Hours
+process.name:(mimikatz.exe OR mimi.exe) AND 
+  @timestamp:[now-24h TO now]
+
+# Query 8: By Host
+process.name:(mimikatz.exe OR mimi.exe) AND 
+  host.name:"Windows-Target"

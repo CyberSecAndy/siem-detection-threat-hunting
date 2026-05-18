@@ -1,0 +1,45 @@
+# Splunk SPL: Detect Mimikatz Execution
+# This query identifies when Mimikatz or similar credential dumping tools are executed
+# Using Sysmon Event ID 1 (Process Creation)
+
+# Basic Detection - Mimikatz Process Name
+index=windows source="WinEventLog:Microsoft-Windows-Sysmon/Operational" 
+EventCode=1
+| search Image="*mimikatz*" OR Image="*mimi.exe" OR Image="*meow.exe"
+| stats count by Image, user, Computer, CommandLine
+
+# --- OR ---
+
+# Advanced Detection - Command Line Indicators
+index=windows source="WinEventLog:Microsoft-Windows-Sysmon/Operational" 
+EventCode=1
+| search CommandLine="*lsadump*" OR CommandLine="*sekurlsa*" 
+   OR CommandLine="*vault*" OR CommandLine="*token::elevate*"
+| stats count by Image, CommandLine, user, Computer
+| where Image!="C:\\Windows\\*"
+
+# --- OR ---
+
+# Comprehensive Detection - Multiple Indicators
+index=windows source="WinEventLog:Microsoft-Windows-Sysmon/Operational" 
+EventCode=1
+| search (
+    (Image="*mimikatz*" OR Image="*mimi.exe") OR 
+    (CommandLine="*lsadump::sam*" OR CommandLine="*lsadump::secrets*" 
+     OR CommandLine="*sekurlsa::logonpasswords*" OR CommandLine="*vault::cred*")
+  )
+| stats earliest(_time) as First, latest(_time) as Last, count as Total 
+  by user, Computer, Image, CommandLine
+| where Total > 0
+
+# --- OR ---
+
+# Detection with LSASS Access Correlation
+index=windows source="WinEventLog:Microsoft-Windows-Sysmon/Operational" 
+EventCode=1 Image="*mimikatz*"
+| stats count by Computer, user
+| join type=left Computer 
+  [search index=windows source="WinEventLog:Microsoft-Windows-Sysmon/Operational" 
+   EventCode=10 TargetImage="C:\\Windows\\System32\\lsass.exe"
+   | stats count as lsass_access by Computer]
+| where lsass_access > 0

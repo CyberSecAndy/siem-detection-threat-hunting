@@ -1,0 +1,48 @@
+title: Credential Dumping - Mimikatz Execution
+id: 29b8faf5-5f21-4f3e-b8c6-d1d6c52a1d8b
+status: stable
+description: Detects execution of Mimikatz tool for credential dumping
+references:
+  - https://attack.mitre.org/techniques/T1003/
+  - https://github.com/gentilkiwi/mimikatz
+author: Security Team
+date: 2024/05/18
+modified: 2026/05/18
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  # Detection by image name
+  selection_image:
+    Image|endswith:
+      - 'mimikatz.exe'
+      - 'mimi.exe'
+      - 'meow.exe'
+  # Detection by suspicious command line
+  selection_commandline:
+    CommandLine|contains:
+      - 'lsadump::sam'
+      - 'lsadump::secrets'
+      - 'lsadump::cache'
+      - 'sekurlsa::logonpasswords'
+      - 'sekurlsa::msv'
+      - 'vault::cred'
+      - 'vault::list'
+      - 'token::elevate'
+      - 'token::list'
+  # Detection by suspicious parent process
+  selection_parent:
+    ParentImage|endswith:
+      - 'cmd.exe'
+      - 'powershell.exe'
+      - 'explorer.exe'
+  condition: selection_image OR selection_commandline
+falseposives:
+  - Authorized penetration testing
+  - Red team exercises
+  - Security research in lab environments
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1003
+  - soc.medium_priority
